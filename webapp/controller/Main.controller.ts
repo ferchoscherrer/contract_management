@@ -761,23 +761,67 @@ export default class Main extends Controller {
         oBinding.filter([oFilter]);
     }
 
+    // public onSelectMaterial(oEvent: TableSelectDialog$ConfirmEvent): void {
+    //     const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
+
+    //     if (this.sPahtMaterial) {
+    //         const sPathMaterial = this.sPahtMaterial;
+
+    //         for (const oSelect of oSelectedContext) {
+    //             const oMaterialSelected = oSelect.getObject();
+    //             this.oContractManagement.setProperty(`${sPathMaterial}/oMaterial`, oMaterialSelected);
+    //             this._applyCustomerGroup1ByMaterial(sPathMaterial, oMaterialSelected);
+    //         }
+
+    //         this.sPahtMaterial = "";
+    //         this.oContractManagement.refresh(true);
+    //         this._markAsDirty();
+    //     }
+    // }
+
+
     public onSelectMaterial(oEvent: TableSelectDialog$ConfirmEvent): void {
-        const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
+    const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
 
-        if (this.sPahtMaterial) {
-            const sPathMaterial = this.sPahtMaterial;
+    if (this.sPahtMaterial) {
+        const sPathMaterial = this.sPahtMaterial;
 
-            for (const oSelect of oSelectedContext) {
-                const oMaterialSelected = oSelect.getObject();
-                this.oContractManagement.setProperty(`${sPathMaterial}/oMaterial`, oMaterialSelected);
+        for (const oSelect of oSelectedContext) {
+            const oMaterialSelected = oSelect.getObject();
+            // Asignamos el material al modelo
+            this.oContractManagement.setProperty(`${sPathMaterial}/oMaterial`, oMaterialSelected);
+            
+            // NUEVO: En lugar de aplicar la cobertura directo, lanzamos la pregunta
+            this._askPostventa(sPathMaterial, oMaterialSelected);
+        }
+
+        this.sPahtMaterial = "";
+        this.oContractManagement.refresh(true);
+        this._markAsDirty();
+    }
+}
+
+private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
+    MessageBox.confirm("¿Este material corresponde a una Postventa?", {
+        title: "Confirmación de Postventa",
+        actions: [MessageBox.Action.YES, MessageBox.Action.NO],
+        emphasizedAction: MessageBox.Action.YES,
+        onClose: (oAction: string) => {
+            if (oAction === MessageBox.Action.YES) {
+                // Si dice que SÍ: Forzamos el valor a "PSV" (Postventa) y bloqueamos el campo
+                this.oContractManagement.setProperty(`${sPathMaterial}/selectedCustomerGroup1`, "PSV");
+                this.oContractManagement.setProperty(`${sPathMaterial}/isCustomerGroup1Locked`, true);
+            } else {
+                // Si dice que NO: Ejecutamos tu lógica original de autollenado
                 this._applyCustomerGroup1ByMaterial(sPathMaterial, oMaterialSelected);
             }
-
-            this.sPahtMaterial = "";
+            
+            // Refrescamos el modelo para que la vista refleje el cambio de la cobertura y se marque como sucio el form
             this.oContractManagement.refresh(true);
             this._markAsDirty();
         }
-    }
+    });
+}
 
     private _normalizeText(value: string): string {
         return (value || "")
