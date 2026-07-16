@@ -312,6 +312,23 @@
                                             />
                                         </t:template>
                                     </t:Column>
+
+                                       
+
+
+<t:Column width="12rem" hAlign="Center">
+    <Text text="Destinatario" />
+    <t:template>
+        <ObjectStatus
+            text="{= ${mContractManagement>arrPartners/0/Name} || 'Pendiente' }"
+            state="{= ${mContractManagement>arrPartners}.length > 0 ? 'Success' : 'Warning' }"
+            icon="sap-icon://supplier"
+            press="onOpenPartnerManagement"
+            active="true" />
+    </t:template>
+</t:Column>
+
+
                                     <t:Column width="13rem">
                                         <Text text="{i18n>cebe}" />
                                         <t:template>

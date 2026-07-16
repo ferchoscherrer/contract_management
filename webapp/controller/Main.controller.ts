@@ -60,6 +60,7 @@ export default class Main extends Controller {
     private oFragmentMaterial!: Dialog;
     private oFragmentCabe!: Dialog;
     private oFragmentOrderReason!: Dialog;
+    private oFragmentPartners!: Dialog;
     private oFragmentShipTo!: Dialog;
     private sPahtMaterial!: string;
     private arrIndexSelectRowMaterial: number[] = [];
@@ -69,6 +70,10 @@ export default class Main extends Controller {
     private oShellUIService: ShellUIService | null = null;
     private _ignoreNextPopState = false;
     private _hasHistoryEntry = false;
+
+
+
+    
 
     public onInit(): void {
         this.oContractManagement = this.getOwnerComponent()?.getModel("mContractManagement") as JSONModel;
@@ -96,6 +101,12 @@ export default class Main extends Controller {
         window.addEventListener("popstate", this._handlePopState);
 
         this._pushGuardHistoryState();
+        // En tu método de inicialización
+this.oContractManagement.setProperty("/fixedPartners", [
+    { CustomerCode: "1000100450", Name: "Departamento 101" },
+    { CustomerCode: "1000100451", Name: "Departamento 102" },
+    { CustomerCode: "1000100452", Name: "Departamento 103" }
+]);
     }
 
     public onExit(): void {
@@ -258,6 +269,9 @@ export default class Main extends Controller {
             paymentTerms: "Z001",
             paymentMethod: null
         });
+        this.oContractManagement.setProperty("/config", {
+        isMultiPartner: false
+    });
 
         const aPaymentTerms = [
             { Zterm: "K008", Vtext: "dentro de los 8 días sin DPP" },
@@ -282,6 +296,19 @@ export default class Main extends Controller {
                 console.error("Error al cargar el catálogo de pagos:", oError);
             }
         });
+
+        oModelOData.read("/UsageTypeSet", {
+        success: (oData: any) => {
+            const arrTiposUso = oData.results.map((item: any) => ({
+                TipoUso: item.CustGroup || item.TipoUso, // Asegúrate de usar la propiedad correcta de tu OData
+                DescripcionUso: item.Description || item.Vtext 
+            }));
+            this.oContractManagement.setProperty("/catalogoUso", arrTiposUso);
+        },
+        error: (oError: any) => {
+            console.error("Error al cargar catálogo de tipos de uso:", oError);
+        }
+    });
     }
 
     public async onOpenPopUpType(): Promise<void> {
@@ -580,6 +607,8 @@ export default class Main extends Controller {
         oBinding.filter([oFilter]);
     }
 
+    //INICIO DE MEJORA
+    /*
     public onSelectRequester(oEvent: TableSelectDialog$ConfirmEvent): void {
         const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
         for (const oSelect of oSelectedContext) {
@@ -587,6 +616,30 @@ export default class Main extends Controller {
         }
         this._markAsDirty();
     }
+    */
+   public onSelectRequester(oEvent: TableSelectDialog$ConfirmEvent): void {
+    const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
+    
+    for (const oSelect of oSelectedContext) {
+        const oCustomer = oSelect.getObject() as Customer;
+        this.oContractManagement.setProperty("/header/oRequester", oCustomer);
+        
+        // El campo en el JSON es 'Multipayer' (con M mayúscula según tu imagen)
+        const bIsMulti = (oCustomer.Multipayer === 'X');
+        
+        // Seteamos la propiedad en la ruta correcta
+        this.oContractManagement.setProperty("/config/isMultiPartner", bIsMulti);
+        
+        // Forzamos el refresco de todo el modelo para que la visibilidad de la columna se re-evalúe
+        this.oContractManagement.refresh(true); 
+        
+        if (bIsMulti) {
+            MessageToast.show("Escenario de facturación múltiple detectado.");
+        }
+    }
+    this._markAsDirty();
+}
+    //FIN DE MEJORA
 
     public onSelectShipTo(oEvent: TableSelectDialog$ConfirmEvent): void {
         const oSelectedContext = oEvent.getParameter("selectedContexts") as ContextV2[];
@@ -654,7 +707,8 @@ export default class Main extends Controller {
             validFromDate: oHeader.validFromDate,
             validUntilDate: oHeader.validUntilDate,
             isCustomerGroup1Locked: false,
-            arrEquipment: []
+            arrEquipment: [],
+            arrPartners: []
         };
 
         arrMaterial.push(oMaterial);
@@ -801,6 +855,7 @@ export default class Main extends Controller {
     }
 }
 
+/*
 private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
     MessageBox.confirm("¿Este material corresponde a una Postventa?", {
         title: "Confirmación de Postventa",
@@ -819,6 +874,40 @@ private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
             // Refrescamos el modelo para que la vista refleje el cambio de la cobertura y se marque como sucio el form
             this.oContractManagement.refresh(true);
             this._markAsDirty();
+        }
+    });
+}*/
+// se mejora funcion para que despues del msj de texto la posicion se seleccione en la tabla de materiales y se mantenga el foco en la fila seleccionada
+private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
+    // 1. Extraemos el índice de la ruta (asumiendo formato /arrMaterial/i)
+    const aPathParts = sPathMaterial.split("/");
+    const iIndex = parseInt(aPathParts[aPathParts.length - 1], 10);
+
+    MessageBox.confirm("¿Este material corresponde a una Postventa?", {
+        title: "Confirmación de Postventa",
+        actions: [MessageBox.Action.YES, MessageBox.Action.NO],
+        emphasizedAction: MessageBox.Action.YES,
+        onClose: (oAction: string) => {
+            if (oAction === MessageBox.Action.YES) {
+                this.oContractManagement.setProperty(`${sPathMaterial}/selectedCustomerGroup1`, "PSV");
+                this.oContractManagement.setProperty(`${sPathMaterial}/isCustomerGroup1Locked`, true);
+            } else {
+                this._applyCustomerGroup1ByMaterial(sPathMaterial, oMaterialSelected);
+            }
+            
+            this.oContractManagement.refresh(true);
+            this._markAsDirty();
+
+            // 2. Lógica para seleccionar la fila en la UI
+            const oTable = this.byId("tblMaterial") as Table;
+            if (oTable && !isNaN(iIndex)) {
+                setTimeout(() => {
+                    oTable.clearSelection();
+                    oTable.setSelectedIndex(iIndex);
+                    this.arrIndexSelectRowMaterial = [iIndex];
+                    oTable.setFirstVisibleRow(iIndex);
+                }, 100);
+            }
         }
     });
 }
@@ -1004,11 +1093,13 @@ private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
                 QuotationPartnersSet: [
                     {
                         PartnNumb: oHeader.oRequester?.CustomerCode || "",
-                        PartnRole: "AG"
+                        PartnRole: "AG",
+                        ItmNumber: "000000"
                     },
                     {
                         PartnNumb: oHeader.oShipTo?.CustomerCode || "",
-                        PartnRole: "WE"
+                        PartnRole: "WE",
+                        ItmNumber: "000000"
                     }
                 ]
             };
@@ -1298,4 +1389,44 @@ private _askPostventa(sPathMaterial: string, oMaterialSelected: any): void {
         this.oContractManagement.setProperty("/arrWorkForce", []);
         this._isDirty = false;
     }
+
+    // 1. Abrir el Dialog
+public async onOpenPartnerManagement(oEvent: Button$PressEvent): Promise<void> {
+    const oSource = oEvent.getSource();
+    const oCtx = oSource.getBindingContext("mContractManagement") as ContextV2;
+    
+    if (!oCtx) return; // Validación de seguridad
+
+    this.sPahtMaterial = oCtx.getPath(); 
+    
+    // Inicialización del fragmento (o recuperarlo si ya existe)
+    if (!this.oFragmentPartners) {
+        this.oFragmentPartners = await Fragment.load({
+            id: this.getView()?.getId(),
+            name: "contractmanagement.contractmanagement.view.fragment.PartnerDialog",
+            controller: this
+        }) as Dialog;
+        this.getView()?.addDependent(this.oFragmentPartners);
+    }
+    
+    this.oFragmentPartners.open();
+}
+
+// 2. Selección del Partner
+public onSelectPartnerFromDialog(oEvent: any): void {
+    const oItem = oEvent.getParameter("listItem");
+    const oPartner = oItem.getBindingContext("mContractManagement").getObject();
+
+    // Actualizamos el arrPartners de la fila específica guardada en sPahtMaterial
+    this.oContractManagement.setProperty(`${this.sPahtMaterial}/arrPartners`, [oPartner]);
+    
+    this.oFragmentPartners.close();
+    this.oContractManagement.refresh(true); // Esto actualiza el contador "0" a "1" en el botón
+}
+
+// 3. Cerrar
+public onClosePartnerDialog(): void {
+    this.oFragmentPartners.close();
+}
+    
 }

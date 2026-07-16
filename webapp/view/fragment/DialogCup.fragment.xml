@@ -1,89 +1,218 @@
 <core:FragmentDefinition
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
-    xmlns:t="sap.ui.table" 
-    xmlns:rowmodes="sap.ui.table.rowmodes">
-    <Dialog resizable="true" verticalScrolling="false" draggable="true" contentWidth="50%" contentHeight="28%">
-        <customHeader>            
+    xmlns:f="sap.ui.layout.form"
+    xmlns:layout="sap.ui.layout"
+    xmlns:t="sap.ui.table">
+    
+    <!-- Cambiado a verticalScrolling="true" para que no corte el contenido -->
+    <Dialog 
+        resizable="true" 
+        verticalScrolling="true" 
+        draggable="true" 
+        contentWidth="85%" 
+        contentHeight="90%">
+        
+        <customHeader>         
             <Toolbar>
-                <Title text="{i18n>cupService}" />
+                <Title text="CUP PARA SERVICIOS DE MANTENIMIENTO" level="H2"/>
                 <ToolbarSpacer />
                 <Button icon="sap-icon://decline" type="Default" press="onCloseWorkForce" />
             </Toolbar>
         </customHeader>
 
         <content>
-            <t:Table  
-                alternateRowColors="true"
-                busyIndicatorDelay="0"
-                enableColumnFreeze="true"
-                enableSelectAll="true"
-                enableColumnReordering="true"
-                showNoData="true"
-                selectionBehavior="RowSelector"
-                rowSelectionChange="onSelectRow"
-                rows="{mContractManagement>/arrWorkForce}"
-                selectionMode="None">
+            <!-- Contenedor principal sin comportamientos flex extraños -->
+            <VBox class="sapUiSmallMargin">
                 
-                <t:layoutData>
-                    <FlexItemData growFactor="1" shrinkFactor="1" />
-                </t:layoutData>
+                <!-- PRIMERA SECCIÓN: Características, Uso y Servicio en una Rejilla Responsiva -->
+                <!-- defaultSpan="XL4 L4 M4 S12" divide la pantalla en 3 columnas perfectas de 4 unidades (el total es 12) -->
+                <layout:Grid defaultSpan="XL4 L4 M4 S12" vSpacing="1" hSpacing="1" class="sapUiGridNoMargin">
+                    
+                    <!-- Bloque 1: Características Equipo -->
+                    <Panel headerText="Características Equipo" class="customCardPanel">
+                        <VBox>
+                            <Label text="Tipo" design="Bold"/>
+                            <RadioButtonGroup columns="1" class="sapUiTinyMarginBottom">
+                                <RadioButton text="Elevador" selected="true"/>
+                                <RadioButton text="Escalera-Rampa"/>
+                                <RadioButton text="Puerta"/>
+                            </RadioButtonGroup>
+                            
+                            <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="4" emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0" columnsXL="1" columnsL="1" columnsM="1" singleContainerFullWidth="true">
+                                <Label text="Serie" />
+                                <Text text="{mContractManagement>/currentEquipment/EquipmentB}"/>
+                                
+                                <Label text="Niveles" />
+                                <Text text="{mContractManagement>/currentEquipment/Niveles}" />
+                                
+                                <Label text="Cant." />
+                                <Text text="1" />
+                            </f:SimpleForm>
+                        </VBox>
+                    </Panel>
 
-                <t:rowMode>
-                    <rowmodes:Auto />
-                </t:rowMode>
+                    <!-- Bloque 2: Tipo de Uso -->
+                   <!-- Bloque 2: Tipo de Uso (DINÁMICO Y SOLO LECTURA) -->
+<Panel headerText="Tipo de Uso" class="customCardPanel">
+    <ScrollContainer height="180px" vertical="true">
+        <!-- 
+           Binding a la colección de Tipos de Uso que recuperas del OData. 
+           Si la guardas en otra ruta (ej: mContractManagement>/catalogoUso), cambia la ruta de 'items'.
+        -->
+        <List 
+            items="{mContractManagement>/catalogoUso}" 
+            mode="None" 
+            showSeparators="None"
+            class="sapUiNoContentPadding">
+            <items>
+                <CustomListItem class="sapUiTinyMarginBottom">
+                    <HBox alignItems="Center" spacing="0.5rem">
+                        <!-- 
+                           El CheckBox actúa como indicador visual. 
+                           Compara el código del ítem actual (TipoUso) contra el seleccionado en el Main 
+                           que guardamos previamente al abrir el popup.
+                           editable="false" bloquea la interacción del usuario.
+                        -->
+                        <CheckBox 
+                            selected="{= ${mContractManagement>TipoUso} === ${mContractManagement>/currentEquipmentUsageType} }" 
+                            editable="false" 
+                            enabled="true"
+                        />
+                        <Text text="{mContractManagement>DescripcionUso}" />
+                    </HBox>
+                </CustomListItem>
+            </items>
+        </List>
+    </ScrollContainer>
+</Panel>
 
-                <t:columns>
-                    <t:Column>
-                        <Label text="Rubro" />
-                        <t:template>
-                            <Text text="{mContractManagement>item}" />
-                        </t:template>
-                    </t:Column>
+                    <!-- Bloque 3: Tipo de Servicio -->
+                    <Panel headerText="Tipo de Servicio" class="customCardPanel">
+                        <VBox>
+                            <CheckBox text="Normal (L-V)" selected="true"/>
+                            <CheckBox text="Nocturno"/>
+                            <CheckBox text="Sabatino"/>
+                            <CheckBox text="Guardia"/>
+                        </VBox>
+                    </Panel>
+                </layout:Grid>
 
-                    <t:Column hAlign="Center">
-                        <Label text="Anual" />
-                        <t:template>
-                            <Text text="{mContractManagement>annual}" />
-                        </t:template>
-                    </t:Column>
+                <!-- SEGUNDA SECCIÓN: Contrato y GOP/Utilidad -->
+                <!-- defaultSpan para partir en 8 unidades (Contrato) y 4 unidades (Márgenes) -->
+                <layout:Grid defaultSpan="XL6 L6 M6 S12" class="sapUiSmallMarginTopBottom">
+                    <Panel headerText="Tipo de Contrato" class="customCardPanel">
+                        <layout:Grid defaultSpan="XL3 L3 M6 S6">
+                            <CheckBox text="Básico" selected="true"/>
+                            <CheckBox text="Medio"/>
+                            <CheckBox text="Básico Plus"/>
+                            <CheckBox text="Semi Full"/>
+                        </layout:Grid>
+                    </Panel>
+                    
+                    <Panel headerText="Márgenes / GOP" class="customCardPanel">
+                        <f:SimpleForm editable="true" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="4">
+                            <Label text="GOP" />
+                            <Input value="9.0%" editable="false"/>
+                            <Label text="Utilidad" />
+                            <Input placeholder="Ingrese Utilidad" change=".onChangeWorkForce"/>
+                        </f:SimpleForm>
+                    </Panel>
+                </layout:Grid>
 
-                    <t:Column hAlign="Center">
-                        <Label text="Fecha" />
-                        <t:template>
-                            <DatePicker editable="false" dateValue="{mContractManagement>date}" />
-                        </t:template>
-                    </t:Column>
+                <!-- TERCERA SECCIÓN: Información General del Cliente -->
+                <Panel headerText="Información General del Cliente" class="sapUiSmallMarginBottom customCardPanel">
+                    <layout:Grid defaultSpan="XL6 L6 M6 S12">
+                        <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="4">
+                            <Label text="Contrato de venta" />
+                            <Input value="" editable="false"/>
+                            <Label text="Razón Social" />
+                            <Input value="" editable="false"/>
+                        </f:SimpleForm>
+                        <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="4">
+                            <Label text="Matriz SAP" />
+                            <Input value="" editable="false"/>
+                            <Label text="Subsidiaria" />
+                            <Input value="" editable="false"/>
+                        </f:SimpleForm>
+                    </layout:Grid>
+                    <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="2" labelSpanL="2" labelSpanM="2" labelSpanS="4">
+                        <Label text="Dirección" />
+                        <Input value="" editable="false"/>
+                    </f:SimpleForm>
+                </Panel>
 
-                    <t:Column hAlign="Center">
-                        <Label text="Mensual" />
-                        <t:template>
-                           <Input 
-    textAlign="Right"
-    change=".onChangeWorkForce"
-    editable="{= ${mContractManagement>key} !== '06' }"
-    value="{
-        path: 'mContractManagement>monthly',
-        type: 'sap.ui.model.type.Float',
-        formatOptions: {
-            minFractionDigits: 2,
-            maxFractionDigits: 2,
-            groupingEnabled: true,
-            groupingSeparator: ',',
-            decimalSeparator: '.'
-        }
-    }" 
-/>
-                        </t:template>
-                    </t:Column>
-                </t:columns>
-            </t:Table>
+                <!-- BOTONES DE ACCIÓN INTERNOS -->
+                <HBox justifyCenter="true" class="sapUiSmallMarginBottom" spacing="2rem">
+                    <Button text="Limpiar Formulario" type="Ghost" press="onClearForm"/>
+                    <Button text="Cotizar otro tipo de Equipo" type="Default" press="onCloseWorkForce"/>
+                    <Button text="Insertar" type="Emphasized" press="onSaveWorkForce"/>
+                </HBox>
+
+                <!-- CUARTA SECCIÓN: Integración de Costos (Tabla Fija sin AutoRowMode para evitar roturas) -->
+                <Panel headerText="INTEGRACIÓN DE COSTOS" class="customCardPanel">
+                    <t:Table  
+                        alternateRowColors="true"
+                        rows="{mContractManagement>/arrWorkForce}"
+                        selectionMode="None"
+                        visibleRowCount="8"
+                        class="sapUiSizeCompact">
+                        <t:columns>
+                            <t:Column width="40%">
+                                <Label text="Concepto / Rubro" />
+                                <t:template>
+                                    <Text text="{mContractManagement>item}" design="{= ${mContractManagement>key} === 'Z130' || ${mContractManagement>key} === 'ZSTT' ? 'Bold' : 'Standard' }"/>
+                                </t:template>
+                            </t:Column>
+                            
+                            <t:Column width="30%" hAlign="Center">
+                                <Label text="Porcentaje / Info" />
+                                <t:template>
+                                    <Text text="{mContractManagement>serie2}" />
+                                </t:template>
+                            </t:Column>
+
+                            <t:Column width="30%" hAlign="Right">
+                                <Label text="Importe Mensual" />
+                                <t:template>
+                                    <Input 
+                                        textAlign="Right"
+                                        change=".onChangeWorkForce"
+                                        editable="{= ${mContractManagement>key} === 'Z120' }"
+                                        value="{
+                                            path: 'mContractManagement>monthly',
+                                            type: 'sap.ui.model.type.Float',
+                                            formatOptions: { minFractionDigits: 2, maxFractionDigits: 2, groupingEnabled: true }
+                                        }" 
+                                    />
+                                </t:template>
+                            </t:Column>
+                        </t:columns>
+                    </t:Table>
+                </Panel>
+
+                <!-- FILA INFERIOR: KPI Kards -->
+                <layout:Grid defaultSpan="XL4 L4 M4 S12" class="sapUiSmallMarginTop">
+                    <VBox alignItems="Center" class="kpiTile">
+                        <Label text="Total Equipos" />
+                        <Text text="0" class="kpiValue"/>
+                    </VBox>
+                    <VBox alignItems="Center" class="kpiTile">
+                        <Label text="Costo Mensual" />
+                        <Text text="$0.00" class="kpiValue"/>
+                    </VBox>
+                    <VBox alignItems="Center" class="kpiTile">
+                        <Label text="Utilidad Proyecto" />
+                        <Text text="0.0%" class="kpiValue"/>
+                    </VBox>
+                </layout:Grid>
+
+            </VBox>
         </content>
 
         <beginButton>
             <Button text="Guardar" type="Success" press="onSaveWorkForce" />
         </beginButton>
-
         <endButton>
             <Button text="Cancelar" type="Reject" press="onCloseWorkForce" />
         </endButton>

@@ -1,1 +1,39 @@
 /* Enter your custom styles here */
+
+.miFilaPrecioNeto {
+    background-color: #e8f0fe !important; /* Azul claro */
+    font-weight: bold !important;
+}
+
+.miFilaPrecioNeto .sapUiTableDataCell {
+    color: #004a99 !important; /* Color de texto resaltado */
+}
+
+.customCardPanel {
+    border: 2px solid #3f7ebe !important;
+    border-radius: 15px !important;
+    overflow: hidden;
+    background-color: #ffffff;
+    height: auto !important; /* Fuerza a SAPUI5 a calcular el tamaño según el contenido interno */
+    min-height: 100px;
+}
+
+.customCardPanel .sapMPanelHdr {
+    border-bottom: 1px dashed #3f7ebe !important;
+    color: #000000 !important;
+    font-weight: bold;
+}
+
+.kpiTile {
+    border: 2px solid #3f7ebe !important;
+    border-radius: 15px !important;
+    padding: 15px;
+    text-align: center;
+    background-color: #f7f9fc;
+}
+
+.kpiValue {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2b579a;
+}

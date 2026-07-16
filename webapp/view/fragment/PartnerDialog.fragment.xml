@@ -1,0 +1,17 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog title="Seleccionar Destinatario" contentWidth="400px">
+        <content>
+            <List 
+                items="{path: 'mContractManagement>/fixedPartners'}" 
+                mode="SingleSelectMaster"
+                selectionChange="onSelectPartnerFromDialog">
+                <StandardListItem 
+                    title="{mContractManagement>Name}" 
+                    description="{mContractManagement>CustomerCode}" />
+            </List>
+        </content>
+        <buttons>
+            <Button text="Cerrar" press="onClosePartnerDialog" />
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

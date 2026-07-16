@@ -20,6 +20,15 @@
         "uri": "model/contractManagement.model.json",
         "type": "JSON"
       },
+      "ZCS_GET_DETERMINATION_SRV": {
+        "uri": "sap/opu/odata/sap/ZCS_GET_DETERMINATION_SRV",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/metadata.xml",
+          "odataVersion": "2.0"
+          }
+        },
       "ZSD_CATALOGOS_SRV": {
         "uri": "sap/opu/odata/sap/ZSD_CATALOGOS_SRV",
         "type": "OData",
@@ -115,6 +124,13 @@
       "mContractManagement":{
         "dataSource": "contractManagement",
         "type": "sap.ui.model.json.JSONModel"
+      },
+       "ZCS_GET_DETERMINATION_SRV": {
+        "dataSource": "ZCS_GET_DETERMINATION_SRV",
+        "preload": true,
+        "settings": {
+          "useBatch": true
+        }
       },
       "ZSD_CATALOGOS_SRV": {
         "dataSource": "ZSD_CATALOGOS_SRV",

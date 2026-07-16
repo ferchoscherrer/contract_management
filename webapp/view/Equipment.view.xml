@@ -89,7 +89,7 @@
                     <t:Column visible="{mContractManagement>/isEquipmentCup}" >
                         <Text text="{i18n>CUP}"/>
                         <t:template >
-                            <Button press="onOpenPopUpCup" type="Accept" text="{
+                            <Button press="onOpenPopUpCup" type="Accept" busyIndicatorDelay="0" text="{
                 parts: [
                     {path: 'mContractManagement>cup'},
                     {path: 'mContractManagement>/header/oCurrency/CurrencyCode'}

@@ -23,12 +23,15 @@ export interface Items {
   validFromDate: string | null
   validUntilDate : string | null
   arrEquipment : ItemEquipment[]
+  arrPartners: QuotationPartnersSet[] 
 }
 
 export interface Customer {
   CustomerCode: string
   CompanyCode: string
   Name1: string
+  Multipayer: string
+
 }
 
 export interface DetailRouteArg{
@@ -187,6 +190,7 @@ export interface QuotationEquipmentInSet {
 export interface QuotationPartnersSet {
   PartnRole: string
   PartnNumb: string
+  ItmNumber: string
 }
 
 export interface QuotationDataInSet {
@@ -279,11 +283,13 @@ interface Requester  {
   CustomerCode: string
   CompanyCode: string
   Name1: string
+  Multipayer: string
 }
 interface ShipTo  {
   CustomerCode: string
   CompanyCode: string
   Name1: string
+  Multipayer: string
 }
 interface Currency  {
   CurrencyCode: string

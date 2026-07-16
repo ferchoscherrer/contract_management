@@ -42,10 +42,12 @@ export default class Equipment extends Controller {
     private oFragmentCup:  Dialog;
     private sPahtEquipement: string;
     private arrIndexSelectRow: number[] = [];
+    private fTopeDescuento: number = 0;
 
     // --- INICIO CÓDIGO NUEVO (Propiedades) ---
     private oFragmentBOM: Dialog; // Referencia al nuevo fragmento
     private ZCS_GET_BOM_MATERIAL_SRV: ODataModel; // Nuevo Modelo OData
+    private ZCS_GET_DETERMINATION_SRV: ODataModel;
     private sCurrentEquipmentID: string; // Para guardar el ID del equipo actual
     // --- FIN CÓDIGO NUEVO ---
 
@@ -62,6 +64,7 @@ export default class Equipment extends Controller {
     this.oRouter = (this.getOwnerComponent() as UIComponent).getRouter();
     this.ZCS_GET_COST_MAINTAIN_SRV = this.getOwnerComponent()?.getModel("ZCS_GET_COST_MAINTAIN_SRV") as ODataModel;
     this.ZCS_GET_BOM_MATERIAL_SRV = this.getOwnerComponent()?.getModel("ZCS_GET_BOM_MATERIAL_SRV") as ODataModel;
+    this.ZCS_GET_DETERMINATION_SRV = this.getOwnerComponent()?.getModel("ZCS_GET_DETERMINATION_SRV") as ODataModel;
 
     this.oTarget = this.oRouter.getTarget("TargetEquipment") as Target;
     this.oTarget.attachDisplay((oEvent: Target$DisplayEvent) => {
@@ -459,33 +462,57 @@ public onAddEquipment(oEvent: Button$PressEvent): void {
 
   // 🔧 FIX: Este método se dispara desde un BUTTON, no desde un Input
 // Por eso NO debemos usar Input$ValueHelpRequestEvent
-public async onOpenPopUpCup(oEvent: any): Promise<void> {
 
-    // 🔥 AQUÍ OBTENEMOS EL PATH REAL DEL EQUIPO SELECCIONADO
-    const oSource = oEvent.getSource(); // botón presionado
+
+
+public async onOpenPopUpCup(oEvent: any): Promise<void> {
+    BusyIndicator.show(0);
+
+    const oSource = oEvent.getSource(); 
     const oBindingContext = oSource.getBindingContext("mContractManagement");
 
-    // 🔴 ESTE ES EL PATH CRÍTICO (ej: /arrEquipment/1)
+    if (!oBindingContext) {
+        BusyIndicator.hide();
+        return;
+    }
+
     this.sPahtEquipement = oBindingContext.getPath();
+    
+    // 1. Obtener y guardar el objeto del equipo actual
+    const oCurrentEquipment = this.oContractManagement.getProperty(this.sPahtEquipement);
+    this.oContractManagement.setProperty("/currentEquipment", oCurrentEquipment);
 
-    console.log("=== onOpenPopUpCup ===");
-    console.log("Path del equipo seleccionado:", this.sPahtEquipement);
-    console.log("Equipo seleccionado:", this.oContractManagement.getProperty(this.sPahtEquipement));
+    // 2. EXTRAER EL TIPO DE USO QUE VIENE DESDE EL MAIN
+    // Usamos el arreglo oInfoMaterial que guardó los índices de las posiciones del Main
+    let sUsageTypeDelMain = "";
+    if (this.oInfoMaterial && this.oInfoMaterial.materialPositions && this.oInfoMaterial.materialPositions.length > 0) {
+        const iIndexPosition = this.oInfoMaterial.materialPositions[0];
+        // Leemos directamente la propiedad 'selectedUsageType' asignada en la fila del Main
+        sUsageTypeDelMain = this.oContractManagement.getProperty(`/arrMaterial/${iIndexPosition}/selectedUsageType`) || "";
+    }
 
-    // 🔧 CARGAMOS LOS DATOS (local o servicio)
-    await this._onGetWorkForce();
+    // 3. Setear el valor de control en el modelo para el Expression Binding del fragmento
+    this.oContractManagement.setProperty("/currentEquipmentUsageType", sUsageTypeDelMain);
 
-    // 🔧 Abrimos el popup
-    this.oFragmentCup ??= await Fragment.load({
-        id: this.getView()?.getId(),
-        name: "contractmanagement.contractmanagement.view.fragment.DialogCup",
-        controller: this,
-    }) as Dialog;
+    console.log("Tipo de uso recuperado del Main para el Fragmento:", sUsageTypeDelMain);
 
-    this.getView()?.addDependent(this.oFragmentCup);
-    this.oFragmentCup.open();
+    try {
+        await this._onGetWorkForce();
+
+        this.oFragmentCup ??= await Fragment.load({
+            id: this.getView()?.getId(),
+            name: "contractmanagement.contractmanagement.view.fragment.DialogCup",
+            controller: this,
+        }) as Dialog;
+
+        this.getView()?.addDependent(this.oFragmentCup);
+        this.oFragmentCup.open();
+    } catch (oError) {
+        console.error("Error al abrir el popup de CUP:", oError);
+    } finally {
+        BusyIndicator.hide();
+    }
 }
-
 
     //inicio - se comenta funcion para mejorarla
     /*
@@ -538,6 +565,8 @@ public async onOpenPopUpCup(oEvent: any): Promise<void> {
     //fin - se comenta funcion para mejorarla
 
     // inicio - funcion mejorada
+
+    /* se actualiza funcion para actualizar el esquema de calculo 
     private async _onGetWorkForce(): Promise<void> {
     BusyIndicator.show(0);
     try {
@@ -613,6 +642,254 @@ if (!this.sPahtEquipement) {
         BusyIndicator.hide();
     }
 }
+*/
+
+
+// private async _onGetWorkForce(): Promise<void> {
+//     BusyIndicator.show(0);
+//     try {
+//         if (!this.sPahtEquipement) {
+//             MessageBox.error("No se encontró el equipo seleccionado.");
+//             return;
+//         }
+
+//         const oEquipment = this.oContractManagement.getProperty(this.sPahtEquipement);
+
+//         // 1. Si ya tiene workForce local, lo cargamos (esto se mantiene intacto)
+//         if (oEquipment.workForce && oEquipment.workForce.length > 0) {
+//             const arrFixedWorkForce = oEquipment.workForce.map((item: any) => ({
+//                 ...item,
+//                 date: item.date ? new Date(item.date) : new Date()
+//             }));
+//             this.oContractManagement.setProperty('/arrWorkForce', arrFixedWorkForce);
+//             this._onCalculateTotalWorkForce();
+//             BusyIndicator.hide();
+//             return;
+//         }
+
+//         // 2. Consulta al NUEVO OData de Determinación
+//         const sSerie = oEquipment.EquipmentB; 
+//         console.log("Consultando esquema para el equipo (Serie):", sSerie);
+//         if (!sSerie) {
+//             throw new Error("No se ha identificado el número de equipo para consultar el esquema.");
+//         }
+
+//         // Hacemos la llamada usando Promesas con el formato nativo de SAPUI5 
+//         // para pasar correctamente los parámetros de navegación ($expand)
+//         const oDataResult = await new Promise<any>((resolve, reject) => {
+//             this.ZCS_GET_DETERMINATION_SRV.read("/DeterminationHeaderSet", {
+//                 filters: [new Filter("Serie", FilterOperator.EQ, sSerie)],
+//                 urlParameters: {
+//                     "$expand": "DeterminationNivelSet" 
+//                 },
+//                 success: (oData: any) => resolve(oData),
+//                 error: (oError: any) => reject(oError)
+//             });
+//         });
+
+//         if (!oDataResult || !oDataResult.results || oDataResult.results.length === 0) {
+//             throw new Error(`No se encontró el esquema de cálculo para la serie: ${sSerie}`);
+//         }
+
+//         // Tomamos el primer registro de la cabecera
+//         const oDet = oDataResult.results[0]; 
+        
+//         // Helper para limpiar espacios y convertir los Edm.String que envía el backend a Floats para la vista
+//         const getVal = (val: string) => parseFloat(val ? val.trim() : "0");
+//         const calcAnnual = (val: string) => getVal(val) * 12;
+
+//         // =========================================================
+//         // LÓGICA NUEVA PARA CALCULAR Z002 (NIVELES)
+//         // =========================================================
+        
+//         // 1. Extraer el número de nivel después del signo "="
+//         let iNivelActual = 0;
+//         if (oDet.Niveles && oDet.Niveles.includes("=")) {
+//             const sValorDespuesIgual = oDet.Niveles.split("=").pop() || "0";
+//             iNivelActual = parseInt(sValorDespuesIgual.trim(), 10);
+//         }
+
+//         // 2. Buscar en qué rango cae dentro del expand (DeterminationNivelSet)
+//         let fPorcentajeNivel = 0;
+//         const arrNivelesExpand = oDet.DeterminationNivelSet?.results || [];
+
+//         for (const oRango of arrNivelesExpand) {
+//             const iNivelInf = parseInt(oRango.NivelInf, 10);
+//             const iNivelSp = parseInt(oRango.NivelSp, 10);
+
+//             // Validamos si nuestro nivel actual está dentro del rango inferior y superior
+//             if (iNivelActual >= iNivelInf && iNivelActual <= iNivelSp) {
+//                 fPorcentajeNivel = parseFloat(oRango.Porcentaje || "0");
+//                 break; // Lo encontramos, dejamos de iterar
+//             }
+//         }
+
+//         // 3. Calcular el valor mensual para Z002: Monto base * (Porcentaje / 100)
+//         const fValorMensualZ002 = getVal(oDet.Monto) * (fPorcentajeNivel / 100);
+//         const fValorAnualZ002 = fValorMensualZ002 * 12;
+
+//         // =========================================================
+//         // MAPEO A LA TABLA DE LA VISTA
+//         // =========================================================
+        
+//         const arrResults: any[] = [
+//             { key: 'Z001', item: "Tipo de Equipo",          serie: oDet.Serie,                     annual: calcAnnual(oDet.Monto),        date: new Date(), monthly: getVal(oDet.Monto) },
+//             { key: 'Z002', item: "Niveles del Equipo",      serie: oDet.Niveles || "",             annual: fValorAnualZ002,               date: new Date(), monthly: fValorMensualZ002 }, 
+//             { key: 'Z006', item: "Mano de Obra",            serie: "",                             annual: 0,                             date: new Date(), monthly: 0 }, 
+//             { key: 'Z007', item: "Insumos",                 serie: "",                             annual: 0,                             date: new Date(), monthly: 0 },
+//             { key: 'Z008', item: "Refaccionamiento",        serie: "",                             annual: 0,                             date: new Date(), monthly: 0 },
+//             { key: 'Z009', item: "Serv Traslado / Atn Fa",  serie: "",                             annual: calcAnnual(oDet.ServTraslado), date: new Date(), monthly: getVal(oDet.ServTraslado) },
+//             { key: 'Z010', item: "Gastos de operacion",     serie: "",                             annual: calcAnnual(oDet.GOP),          date: new Date(), monthly: getVal(oDet.GOP) },
+//             { key: 'Z011', item: "Utilidad",                serie: "",                             annual: calcAnnual(oDet.Utilidad),     date: new Date(), monthly: getVal(oDet.Utilidad) },
+//             { key: 'Z012', item: "Descuento",               serie: "",                             annual: calcAnnual(oDet.Descuento),    date: new Date(), monthly: getVal(oDet.Descuento) },
+//             { key: '06',   item: "Precio Neto",             serie: "",                             annual: 0,                             date: new Date(), monthly: 0 }
+//         ];
+
+//         this.oContractManagement.setProperty('/arrWorkForce', arrResults);
+        
+//         // Recalcular los totales (Fila '06')
+//         this._onCalculateTotalWorkForce();
+
+//     } catch (oError: any) {
+//         console.error("Error en _onGetWorkForce:", oError);
+//         this.oContractManagement.setProperty('/arrWorkForce', []);
+//         MessageBox.error(oError.message || "Error al obtener datos de determinación");
+//     } finally {
+//         this.oContractManagement.refresh(true);
+//         BusyIndicator.hide();
+//     }
+// }
+
+
+
+
+
+private async _onGetWorkForce(): Promise<void> {
+    const oDataModel = this.ZCS_GET_DETERMINATION_SRV;
+    if (!oDataModel) return;
+
+    if (!this.sPahtEquipement) {
+        MessageBox.error("No se encontró el equipo seleccionado.");
+        return;
+    }
+
+    const oEquipment = this.oContractManagement.getProperty(this.sPahtEquipement);
+    
+    if (oEquipment.workForce && oEquipment.workForce.length > 0) {
+        const arrFixedWorkForce = oEquipment.workForce.map((item: any) => ({
+            ...item,
+            date: item.date ? new Date(item.date) : new Date()
+        }));
+        this.oContractManagement.setProperty('/arrWorkForce', arrFixedWorkForce);
+        this._onCalculateTotalWorkForce();
+        return;
+    }
+
+    const sSerie = oEquipment.EquipmentB;
+    if (!sSerie) {
+        MessageBox.error("No se ha identificado el número de equipo.");
+        return;
+    }
+
+    const sEquipmentID = oEquipment.EquipmentB;
+    let fManoObraMensualZ050 = 0;
+    try {
+        const { data: oManoObra } = await ERP.readDataKeysERP(`/ManoObraSet('${sSerie}')`, this.ZCS_GET_COST_MAINTAIN_SRV);
+        fManoObraMensualZ050 = parseFloat(oManoObra.ValorTotal || "0") / 12;
+    } catch (e) {
+        console.warn("No se pudo obtener Mano de Obra, se usará 0", e);
+    }
+
+    BusyIndicator.show(0);
+
+    oDataModel.read("/DeterminationHeaderSet", {
+        filters: [new Filter("Serie", FilterOperator.EQ, sSerie)],
+        urlParameters: {
+            "$expand": "DeterminationNivelSet,DeterminationServicioSet,DeterminationContratoSet,DeterminationUsoSet"
+        },
+        success: (oData: any) => {
+            BusyIndicator.hide();
+            const aResults = oData.results ? oData.results : (oData.d ? oData.d.results : []);
+
+            if (aResults.length === 0) {
+                MessageBox.error("No se encontró el esquema para la serie: " + sSerie);
+                return;
+            }
+
+            const oDet = aResults[0];
+            this.fTopeDescuento = parseFloat(oDet.Descuento || "0");
+
+            let sCustomerGroup1 = "";
+            let sUsageType = "";
+            let sUsageTypeText = "";
+            let sServiceType = "";
+            
+            if (this.oInfoMaterial && this.oInfoMaterial.materialPositions && this.oInfoMaterial.materialPositions.length > 0) {
+                const iIndex = this.oInfoMaterial.materialPositions[0];
+                const oMaterial = this.oContractManagement.getProperty(`/arrMaterial/${iIndex}`);
+                sCustomerGroup1 = oMaterial ? (oMaterial.selectedCustomerGroup1 || "") : "";
+                sUsageType = oMaterial ? (oMaterial.selectedUsageType || "") : "";
+                sUsageTypeText = oMaterial ? (oMaterial.selectedUsageTypeText || "") : "";
+                sServiceType = oMaterial ? (oMaterial.selectedWorkingHours || "") : "";
+            }
+
+            const getVal = (val: string) => parseFloat(val ? val.trim() : "0");
+
+            const arrContratosExpand = oDet.DeterminationContratoSet?.results || [];
+            const oContratoEncontrado = arrContratosExpand.find((oC: any) => oC.TipoContrato?.trim() === sCustomerGroup1.trim());
+            const fMontoContrato = oContratoEncontrado ? getVal(oContratoEncontrado.Monto) : 0;
+
+            let iNivelActual = oDet.Niveles?.includes("=") ? parseInt(oDet.Niveles.split("=").pop().trim(), 10) : 0;
+            const arrNivelesExpand = oDet.DeterminationNivelSet?.results || [];
+            const oRango = arrNivelesExpand.find((r: any) => iNivelActual >= parseInt(r.NivelInf, 10) && iNivelActual <= parseInt(r.NivelSp, 10));
+            const fPorcentajeNivel = oRango ? parseFloat(oRango.Porcentaje || "0") : 0;
+            const fValorMensualZ020 = fMontoContrato * (fPorcentajeNivel / 100);
+
+            const arrUsoExpand = oDet.DeterminationUsoSet?.results || [];
+            const oUsoEncontrado = arrUsoExpand.find((oU: any) => oU.TipoUso?.trim() === sUsageType.trim());
+            const fValorTipoUso = oUsoEncontrado ? getVal(oUsoEncontrado.ValorTipo) : 0;
+            const fValorMensualZ030 = fMontoContrato * (fValorTipoUso / 100);
+
+            const arrServicioExpand = oDet.DeterminationServicioSet?.results || [];
+            const oServicioEncontrado = arrServicioExpand.find((oS: any) => oS.TipoServicio?.trim() === sServiceType.trim());
+            const fValorTipoServicio = oServicioEncontrado ? getVal(oServicioEncontrado.ValorTipo) : 0;
+            const fValorMensualZ040 = fMontoContrato * (fValorTipoServicio / 100);
+
+            const fValorMensualZ080 = fMontoContrato * (getVal(oDet.ServTraslado) / 100);
+            const fValorMensualZ090 = fMontoContrato * (getVal(oDet.AtencFalla) / 100);
+            const fValorMensualZ100 = fMontoContrato * (getVal(oDet.GOP) / 100);
+            const fValorMensualZ110 = fMontoContrato * (getVal(oDet.Utilidad) / 100);
+            const fValorMensualZ120 = fMontoContrato * (getVal(oDet.Descuento) / 100);
+
+            const arrResults: any[] = [
+                { key: 'Z010', item: "Tipo de Contrato",      serie: oDet.Serie,              serie2: sServiceType,            date: new Date(), monthly: fMontoContrato,           annual: fMontoContrato * 12 },
+                { key: 'Z020', item: "Niveles del Equipo",    serie: oDet.Niveles || "",      serie2: fPorcentajeNivel + " %", date: new Date(), monthly: fValorMensualZ020,        annual: fValorMensualZ020 * 12 }, 
+                { key: 'Z030', item: "Tipo de Uso",           serie: sUsageTypeText,          serie2: fValorTipoUso + " %",    date: new Date(), monthly: fValorMensualZ030,        annual: fValorMensualZ030 * 12 },
+                { key: 'Z040', item: "Tipo de Servicio",      serie: sServiceType,            serie2: fValorTipoServicio + " %", date: new Date(), monthly: fValorMensualZ040,      annual: fValorMensualZ040 * 12 }, 
+                { key: 'Z050', item: "Mano de Obra",          serie: "",                      serie2: "",                      date: new Date(), monthly: fManoObraMensualZ050,    annual: fManoObraMensualZ050 * 12 }, 
+                { key: 'Z060', item: "Insumos",               serie: "",                      serie2: "",                      date: new Date(), monthly: 0,                        annual: 0 },
+                { key: 'Z070', item: "Refaccionamiento",      serie: "",                      serie2: "",                      date: new Date(), monthly: 0,                        annual: 0 },
+                { key: 'Z080', item: "Serv Traslado",         serie: "",                      serie2: oDet.ServTraslado + " %", date: new Date(), monthly: fValorMensualZ080,        annual: fValorMensualZ080 * 12 },
+                { key: 'Z090', item: "Atenció. a fallas",     serie: "",                      serie2: oDet.AtencFalla + " %",  date: new Date(), monthly: fValorMensualZ090,        annual: fValorMensualZ090 * 12 },
+                { key: 'Z100', item: "Gastos de operacion",   serie: "",                      serie2: oDet.GOP + " %",         date: new Date(), monthly: fValorMensualZ100,        annual: fValorMensualZ100 * 12 },
+                { key: 'Z110', item: "Utilidad",              serie: "",                      serie2: oDet.Utilidad + " %",    date: new Date(), monthly: fValorMensualZ110,        annual: fValorMensualZ110 * 12 },
+                //{ key: 'ZSTT', item: "Subtotal",              serie: "",                      serie2: "",                      date: new Date(), monthly: 0,                        annual: 0 },
+                { key: 'Z120', item: "Descuento Máximo",      serie: "",                      serie2: "-" + oDet.Descuento + " %",   date: new Date(), monthly: 0,                        annual:"-" + 0 },
+                { key: 'Z130', item: "Precio Neto",           serie: "",                      serie2: "",                      date: new Date(), monthly: 0,                        annual: 0 }
+            ];
+
+            this.oContractManagement.setProperty('/arrWorkForce', arrResults);
+            this._onCalculateTotalWorkForce();
+            this.oContractManagement.refresh(true);
+        },
+        error: (oError: any) => {
+            BusyIndicator.hide();
+            console.error("Error al obtener datos:", oError);
+            MessageBox.error("Error al obtener el esquema de cálculo.");
+        }
+    });
+}
+
   public onCloseWorkForce(): void {
     this.oContractManagement.setProperty("/arrWorkForce", []);
     this.oContractManagement.refresh(true);
@@ -633,11 +910,11 @@ public onSaveWorkForce(): void {
     const arrWorkForce: any[] = this.oContractManagement.getProperty("/arrWorkForce") || [];
     console.log("arrWorkForce del popup antes de guardar:", JSON.parse(JSON.stringify(arrWorkForce)));
 
-    const oFoundTotalMonthly = arrWorkForce.find((oWorkForce: any) => oWorkForce.key === "06");
+    const oFoundTotalMonthly = arrWorkForce.find((oWorkForce: any) => oWorkForce.key === "Z130");
     console.log("Fila TOTAL encontrada:", JSON.parse(JSON.stringify(oFoundTotalMonthly)));
 
     if (!oFoundTotalMonthly) {
-        console.warn("No se encontró la fila con key = '06'");
+        console.warn("No se encontró la fila con key = 'Z130'");
         MessageBox.warning("No se encontró el total del CUP.");
         return;
     }
@@ -687,37 +964,116 @@ public onSaveWorkForce(): void {
 
     this.onCloseWorkForce();
 }
-   public _onCalculateTotalWorkForce(): void {
+//    public _onCalculateTotalWorkForce(): void {
+//     const arrWorkForce = this.oContractManagement.getProperty("/arrWorkForce") || [];
+
+//     let iTotalAnnual = 0;
+//     let iTotalMonthly = 0;
+
+//     // Sumar todos los rubros EXCEPTO ZVKP (Precio Neto)
+//     for (const oWorkForce of arrWorkForce) {
+//         if (oWorkForce.key !== "ZVKP") {
+//             iTotalAnnual += Number(oWorkForce.annual || 0);
+//             iTotalMonthly += Number(oWorkForce.monthly || 0);
+//         }
+//     }
+
+//     // Asignar el total a la fila ZVKP
+//     const iIndexTotal = arrWorkForce.findIndex((item: any) => item.key === "ZVKP");
+
+//     if (iIndexTotal !== -1) {
+//         arrWorkForce[iIndexTotal].annual = iTotalAnnual;
+//         arrWorkForce[iIndexTotal].monthly = iTotalMonthly;
+//     }
+
+//     this.oContractManagement.setProperty("/arrWorkForce", arrWorkForce);
+//     this.oContractManagement.refresh(true);
+// }
+
+public _onCalculateTotalWorkForce(): void {
     const arrWorkForce = this.oContractManagement.getProperty("/arrWorkForce") || [];
 
     console.log("=== _onCalculateTotalWorkForce ===");
-    console.log("arrWorkForce ANTES total:", JSON.parse(JSON.stringify(arrWorkForce)));
 
-    let iTotalAnnual = 0;
-    let iTotalMonthly = 0;
+    // 1. Calcular Subtotal (Suma de todo excepto Utilidad, Subtotal, Descuento y Neto)
+    let fSubtotalMonthly = 0;
+    const keysToExcludeFromSubtotal = ['Z110', 'Z120', 'ZSTT', 'Z130'];
 
     for (const oWorkForce of arrWorkForce) {
-        if (oWorkForce.key !== "06") {
-            iTotalAnnual += Number(oWorkForce.annual || 0);
-            iTotalMonthly += Number(oWorkForce.monthly || 0);
+        if (!keysToExcludeFromSubtotal.includes(oWorkForce.key)) {
+            fSubtotalMonthly += Number(oWorkForce.monthly || 0);
         }
     }
 
-    const iIndexTotal = arrWorkForce.findIndex((item: any) => item.key === "06");
+    
 
-    if (iIndexTotal !== -1) {
-        arrWorkForce[iIndexTotal].annual = iTotalAnnual;
-        arrWorkForce[iIndexTotal].monthly = iTotalMonthly;
+    // 2. Actualizar fila de Subtotal (ZSTT)
+    const oSubtotal = arrWorkForce.find((item: any) => item.key === 'ZSTT');
+    if (oSubtotal) {
+        oSubtotal.monthly = fSubtotalMonthly;
+        oSubtotal.annual = fSubtotalMonthly * 12;
     }
 
+    // 3. Calcular Precio Neto (ZVKP = Subtotal - Descuento)
+    const oDescuento = arrWorkForce.find((item: any) => item.key === 'Z120');
+    if (oDescuento) {
+        // Aquí ocurre la magia: siempre recalcula el annual basado en el monthly actual
+        oDescuento.annual = Number(oDescuento.monthly || 0) * 12;
+    }
+    const fDescuentoMonthly = oDescuento ? Number(oDescuento.monthly || 0) : 0;
+    
+    const fPrecioNetoMonthly = fSubtotalMonthly - fDescuentoMonthly;
+
+    const oNeto = arrWorkForce.find((item: any) => item.key === 'Z130');
+    if (oNeto) {
+        oNeto.monthly = fPrecioNetoMonthly;
+        oNeto.annual = fPrecioNetoMonthly * 12;
+    }
+
+    // 4. Guardar y refrescar
     this.oContractManagement.setProperty("/arrWorkForce", arrWorkForce);
     this.oContractManagement.refresh(true);
 
-    console.log("Total annual calculado:", iTotalAnnual);
-    console.log("Total monthly calculado:", iTotalMonthly);
-    console.log("arrWorkForce DESPUÉS total:", JSON.parse(JSON.stringify(arrWorkForce)));
+    console.log("Subtotal calculado:", fSubtotalMonthly);
+    console.log("Precio Neto calculado:", fPrecioNetoMonthly);
 }
-public onChangeWorkForce(): void {
+
+
+
+// public onChangeWorkForce(): void {
+//     this._onCalculateTotalWorkForce();
+// }
+
+
+public onChangeWorkForce(oEvent: any) {
+    const oInput = oEvent.getSource();
+    const oContext = oInput.getBindingContext("mContractManagement");
+    const oItem = oContext.getObject();
+
+    if (oItem.key === 'Z120') {
+    const fNuevoValor = Number(oInput.getValue());
+    
+    // Obtener el límite del objeto (ajusta esta ruta según cómo guardaste el valor de descuento en tu modelo)
+    // Suponiendo que el límite está en oDet.Descuento, asegúrate de tener acceso a ese valor.
+    // Si no tienes acceso a oDet aquí, usa un valor fijo o una variable global.
+    const fLimitePermitido = this.fTopeDescuento;
+
+    if (fNuevoValor > fLimitePermitido) {
+        MessageBox.confirm("El descuento solicitado supera el límite permitido. ¿Desea enviar una solicitud al área de Finanzas?", {
+            onClose: (sAction: string) => {
+                if (sAction === MessageBox.Action.OK) {
+                    MessageToast.show("Solicitud enviada a Finanzas.");
+                } else {
+                    oInput.setValue(0);
+                    oItem.monthly = 0;
+                    this._onCalculateTotalWorkForce();
+                    }
+                }
+            });
+        }
+    }
+    
+    // Al final del cambio, siempre recalcular
     this._onCalculateTotalWorkForce();
 }
 
