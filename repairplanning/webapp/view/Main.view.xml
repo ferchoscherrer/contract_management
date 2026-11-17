@@ -4,7 +4,7 @@
     xmlns:core="sap.ui.core"
     xmlns:t="sap.ui.table"
     xmlns:uxap="sap.uxap">
-    
+
     <NavContainer id="navContainer">
         <!-- PÁGINA 1: Listado Jerárquico de Procesos -->
         <Page id="mainPage" title="Planificación de Mantenimiento - Ciclo de Vida">
@@ -17,52 +17,70 @@
                     enableSelectAll="false"
                     ariaLabelledBy="title">
                     <t:columns>
-                        <!-- Columna de Tipo y ID con icono dinámico -->
-                        <t:Column label="Proceso / ID" width="220px">
+                        <t:Column label="Proceso / ID" width="270px">
                             <t:template>
                                 <HBox alignItems="Center">
-                                    <core:Icon src="{= ${type} === 'Aviso' ? 'sap-icon://alert' : (${type} === 'Orden de Manto' ? 'sap-icon://eam-work-order' : (${type} === 'Cotización' ? 'sap-icon://request' : (${type} === 'SCM' ? 'sap-icon://shipping-status' : 'sap-icon://payment')))}" class="sapUiTinyMarginEnd" />
+                                    <core:Icon src="{path: 'type', formatter: '.formatTypeIcon'}" class="sapUiTinyMarginEnd" />
                                     <Text text="{type}: {id}" />
                                 </HBox>
                             </t:template>
                         </t:Column>
 
-                        <t:Column label="Descripción" width="260px">
+                        <!-- NUEVA: mini flujo de fases, solo en la fila del aviso -->
+                        <t:Column label="Ciclo" width="150px">
+                            <t:template>
+                                <HBox visible="{= ${type} === 'Aviso'}"
+                                      items="{path: 'phases', templateShareable: false}">
+                                    <core:Icon src="{icon}" color="{color}" tooltip="{tooltip}"
+                                               size="1rem" class="sapUiTinyMarginEnd" />
+                                </HBox>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column label="Descripción" width="250px">
                             <t:template>
                                 <Text text="{description}" />
                             </t:template>
                         </t:Column>
 
-                        <!-- Columna con Fragmentos dinámicos según la jerarquía -->
-                        <t:Column label="Detalle Específico de la Fase" width="320px">
-    <t:template>
-        <Text text="{= 
-            ${type} === 'Aviso' ? 'Prioridad: ' + ${priority} + ' | Equipo: ' + ${equipment} : 
-            (${type} === 'Orden de Manto' ? 'Craft: ' + ${craft} + ' | Centro: ' + ${workCenter} : 
-            (${type} === 'Cotización' ? 'Prov: ' + ${vendor} + ' (' + ${amount} + ')' : 
-            (${type} === 'SCM' ? 'Guía: ' + ${trackingNumber} : 
-            (${type} === 'Factura' ? 'Folio: ' + ${invoiceNum} + ' - Impuesto: ' + ${taxCode} : '')))) 
-        }" wrapping="true" />
-    </t:template>
-</t:Column>
+                        <!-- El texto se arma en el controller (propiedad "detail"): sin más "undefined" -->
+                        <t:Column label="Detalle Específico de la Fase" width="340px">
+                            <t:template>
+                                <Text text="{detail}" wrapping="true" />
+                            </t:template>
+                        </t:Column>
 
-                        <t:Column label="Fecha" width="120px">
+                        <t:Column label="Fecha" width="110px">
                             <t:template>
                                 <Text text="{date}" />
                             </t:template>
                         </t:Column>
 
-                        <t:Column label="Estado" class="sapUiTinyMarginBegin" width="130px">
+                        <t:Column label="Estado" width="180px">
                             <t:template>
-                                <ObjectStatus text="{status}" 
-    state="{statusState}" 
-    icon="{statusIcon}" />
+                                <HBox alignItems="Center">
+                                    <ObjectStatus
+                                        visible="{= ${type} !== 'Requerimiento MRP' || ${mrpState} === 'WAITING' || ${mrpState} === 'PENDING_RUN'}"
+                                        text="{status}" state="{statusState}" icon="{statusIcon}"
+                                        tooltip="{status}" />
+                                    <ProgressIndicator
+                                        visible="{= ${type} === 'Requerimiento MRP' &amp;&amp; ${mrpState} === 'PLANNED'}"
+                                        percentValue="{coverage}" displayValue="{coverageText}"
+                                        state="{statusState}" width="160px" height="1.25rem"
+                                        displayOnly="true" tooltip="{status}" />
+                                </HBox>
                             </t:template>
                         </t:Column>
 
-                        <t:Column label="Acción" width="120px">
+                        <t:Column label="Acción" width="250px">
                             <t:template>
-                                <Button text="Ver Detalle" icon="sap-icon://detail-view" press="onPressDetail" type="Emphasized"/>
+                                <HBox visible="{= ${type} !== 'Loading'}">
+                                    <Button text="Ver Detalle" icon="sap-icon://detail-view"
+                                            press="onPressDetail" type="Emphasized" class="sapUiTinyMarginEnd" />
+                                    <Button text="Correr MRP" icon="sap-icon://synchronize"
+                                            press="onRunMrp" type="Attention"
+                                            visible="{= ${type} === 'Requerimiento MRP' &amp;&amp; ${mrpState} === 'PENDING_RUN'}" />
+                                </HBox>
                             </t:template>
                         </t:Column>
                     </t:columns>
@@ -70,7 +88,7 @@
             </content>
         </Page>
 
-        <!-- PÁGINA 2: Vista de Detalle (Object Page con Fragmentos por Jerarquía) -->
+        <!-- PÁGINA 2: Vista de Detalle -->
         <Page id="detailPage" title="{path: 'type', formatter: '.formatDetailTitle'}" showNavButton="true" navButtonPress="onNavBack">
             <content>
                 <uxap:ObjectPageLayout id="objectPageLayout" upperCaseAnchorBar="false">
@@ -92,7 +110,7 @@
                             </VBox>
                             <VBox class="sapUiMediumMarginEnd">
                                 <Label text="Estado Actual"/>
-                                <ObjectStatus text="{status}" state="Success"/>
+                                <ObjectStatus text="{status}" state="{= ${statusState} || 'None'}" icon="{statusIcon}"/>
                             </VBox>
                             <VBox>
                                 <Label text="Fecha de Registro"/>
@@ -104,25 +122,29 @@
                         <uxap:ObjectPageSection title="Información Específica del Objeto">
                             <uxap:subSections>
                                 <uxap:ObjectPageSubSection title="Datos Técnicos y de Negocio">
-                                   <uxap:blocks>
-    <VBox>
-        <VBox visible="{= ${type} === 'Aviso'}">
-            <core:Fragment fragmentName="repairplanning.view.fragment.detail.AvisoDetail" type="XML" />
-        </VBox>
-        <VBox visible="{= ${type} === 'Orden de Manto'}">
-            <core:Fragment fragmentName="repairplanning.view.fragment.detail.OrdenDetail" type="XML" />
-        </VBox>
-        <VBox visible="{= ${type} === 'Cotización'}">
-            <core:Fragment fragmentName="repairplanning.view.fragment.detail.CotizacionDetail" type="XML" />
-        </VBox>
-        <VBox visible="{= ${type} === 'SCM'}">
-            <core:Fragment fragmentName="repairplanning.view.fragment.detail.ScmDetail" type="XML" />
-        </VBox>
-        <VBox visible="{= ${type} === 'Factura'}">
-            <core:Fragment fragmentName="repairplanning.view.fragment.detail.FacturaDetail" type="XML" />
-        </VBox>
-    </VBox>
-</uxap:blocks>
+                                    <uxap:blocks>
+                                        <VBox>
+                                            <VBox visible="{= ${type} === 'Aviso'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.AvisoDetail" type="XML" />
+                                            </VBox>
+                                            <VBox visible="{= ${type} === 'Orden de Manto'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.OrdenDetail" type="XML" />
+                                            </VBox>
+                                            <VBox visible="{= ${type} === 'Cotización'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.CotizacionDetail" type="XML" />
+                                            </VBox>
+                                            <!-- NUEVO: Liberación / Requerimiento MRP / Material -->
+                                            <VBox visible="{= ${type} === 'Liberación' || ${type} === 'Requerimiento MRP' || ${type} === 'Material'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.SupplyDetail" type="XML" />
+                                            </VBox>
+                                            <VBox visible="{= ${type} === 'SCM'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.ScmDetail" type="XML" />
+                                            </VBox>
+                                            <VBox visible="{= ${type} === 'Factura'}">
+                                                <core:Fragment fragmentName="repairplanning.view.fragment.detail.FacturaDetail" type="XML" />
+                                            </VBox>
+                                        </VBox>
+                                    </uxap:blocks>
                                 </uxap:ObjectPageSubSection>
                             </uxap:subSections>
                         </uxap:ObjectPageSection>

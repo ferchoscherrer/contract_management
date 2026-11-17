@@ -1,0 +1,104 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <VBox>
+
+        <!-- ===================== LIBERACIÓN ===================== -->
+        <VBox visible="{= ${type} === 'Liberación'}">
+            <MessageStrip
+                text="{= ${released} ? 'La orden fue liberada al recibir la autorización final de Tesorería. Sus reservas ya son relevantes para MRP.' : 'La orden se liberará automáticamente cuando Tesorería otorgue la autorización final de la oferta.'}"
+                type="{= ${released} ? 'Success' : 'Warning'}"
+                showIcon="true" class="sapUiSmallMarginBottom" />
+            <HBox wrap="Wrap">
+                <VBox class="sapUiMediumMarginEnd sapUiSmallMarginBottom">
+                    <Label text="Orden" />
+                    <Text text="{id}" />
+                </VBox>
+                <VBox class="sapUiMediumMarginEnd sapUiSmallMarginBottom">
+                    <Label text="Autorización" />
+                    <Text text="{detail}" />
+                </VBox>
+                <VBox class="sapUiSmallMarginBottom">
+                    <Label text="Fecha de liberación" />
+                    <Text text="{= ${date} || 'Pendiente'}" />
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- ===================== REQUERIMIENTO MRP ===================== -->
+        <VBox visible="{= ${type} === 'Requerimiento MRP'}">
+            <MessageStrip
+                text="{mrpMessage}"
+                type="{= ${mrpState} === 'PENDING_RUN' ? 'Warning' : (${hasShortage} ? 'Error' : (${allAvailable} ? 'Success' : 'Information'))}"
+                showIcon="true" class="sapUiSmallMarginBottom" />
+
+            <HBox wrap="Wrap" alignItems="Center" class="sapUiSmallMarginBottom">
+                <VBox class="sapUiMediumMarginEnd">
+                    <Label text="Reserva" />
+                    <Text text="{id}" />
+                </VBox>
+                <VBox class="sapUiMediumMarginEnd">
+                    <Label text="Ruta de abastecimiento" />
+                    <Text text="{raw/fromSloc} → {raw/toSloc}" />
+                </VBox>
+                <VBox visible="{= ${mrpState} === 'PLANNED'}">
+                    <Label text="Cobertura en satélite" />
+                    <ProgressIndicator percentValue="{coverage}" displayValue="{coverageText}"
+                                       state="{statusState}" width="220px" displayOnly="true" />
+                </VBox>
+            </HBox>
+
+            <Table headerText="Materiales requeridos por la orden"
+                   items="{path: 'nodes', templateShareable: false}"
+                   noDataText="Sin necesidades: la orden aún no está liberada">
+                <columns>
+                    <Column><Text text="Material" /></Column>
+                    <Column hAlign="End" width="7rem"><Text text="Cantidad" /></Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Origen → Destino" /></Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Documento" /></Column>
+                    <Column><Text text="Estado" /></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <ObjectIdentifier title="{description}" text="{id}" />
+                            <Text text="{qty} {uom}" />
+                            <Text text="{fromSloc} → {toSloc}" />
+                            <Text text="{docType} {docNo}" />
+                            <ObjectStatus text="{status}" state="{statusState}" icon="{statusIcon}" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </VBox>
+
+        <!-- ===================== MATERIAL ===================== -->
+        <VBox visible="{= ${type} === 'Material'}">
+            <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+                <VBox class="sapUiMediumMarginEnd sapUiSmallMarginBottom">
+                    <Label text="Material" />
+                    <Text text="{id} - {description}" />
+                </VBox>
+                <VBox class="sapUiMediumMarginEnd sapUiSmallMarginBottom">
+                    <Label text="Cantidad requerida" />
+                    <Text text="{qty} {uom}" />
+                </VBox>
+                <VBox class="sapUiMediumMarginEnd sapUiSmallMarginBottom">
+                    <Label text="Origen → Destino" />
+                    <Text text="{fromSloc} → {toSloc}" />
+                </VBox>
+                <VBox class="sapUiSmallMarginBottom">
+                    <Label text="Documento actual" />
+                    <Text text="{docType} {docNo}" />
+                </VBox>
+            </HBox>
+
+            <List headerText="Recorrido del material (SCM)"
+                  items="{path: 'steps', templateShareable: false}">
+                <StandardListItem title="{step}" description="{doc}" icon="{icon}"
+                                  info="{info}" infoState="{state}" />
+            </List>
+        </VBox>
+
+    </VBox>
+</core:FragmentDefinition>
