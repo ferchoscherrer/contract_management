@@ -1,0 +1,12 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <VBox class="sapUiMediumMargin">
+        <HBox class="sapUiTinyMarginBottom">
+            <Label text="Folio de Factura: " class="sapUiMediumMarginEnd"/>
+            <Text text="{invoiceNum}"/>
+        </HBox>
+        <HBox class="sapUiTinyMarginBottom">
+            <Label text="Impuesto Aplicado: " class="sapUiMediumMarginEnd"/>
+            <Text text="{taxCode}"/>
+        </HBox>
+    </VBox>
+</core:FragmentDefinition>

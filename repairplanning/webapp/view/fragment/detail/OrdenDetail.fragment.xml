@@ -1,0 +1,81 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form">
+    
+    <VBox class="sapUiSmallMargin">
+        
+        <!-- Cabecera de la Orden -->
+        <f:SimpleForm editable="false" layout="ColumnLayout" title="Datos Generales de la Orden">
+            <f:content>
+                <Label text="Descripción General"/>
+                <Text text="{description}"/>
+                
+                <Label text="Fecha Programada"/>
+                <Text text="{date}"/>
+                
+                <Label text="Estatus"/>
+                <Text text="{status}"/>
+
+                <Label text="Equipo"/>
+                <Text text="{equipment}"/>
+            </f:content>
+        </f:SimpleForm>
+
+        <!-- Pestañas de detalle estilo IW33 -->
+        <IconTabBar id="itbOrderDetail" class="sapUiResponsiveContentPadding">
+            <items>
+                
+                <!-- 1. POSICIONES / ÍTEMS DE LA ORDEN -->
+                <IconTabFilter text="Posiciones" icon="sap-icon://bullet-text" count="{= ${operations}.length }">
+                    <Table items="{operations}" noDataText="No hay posiciones registradas para esta orden">
+                        <columns>
+                            <Column width="90px"><Text text="Ítem"/></Column>
+                            <Column width="220px"><Text text="Texto de Posición"/></Column>
+                            <Column width="150px"><Text text="Personas"/></Column>
+                            <Column width="150px"><Text text="Horas"/></Column>
+                            <Column width="150px"><Text text="total Horas"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{Activity}" />
+                                    <Text text="{Description}" />
+                                    <Text text="{CalcKey}" />
+                                    <Text text="{DurationNormal}" />
+                                    <Text text="{WorkActivity}" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+                <!-- 2. COMPONENTES / REFACCIONES -->
+                <IconTabFilter text="Componentes" icon="sap-icon://wrench" count="{= ${components}.length }">
+                    <Table items="{components}" noDataText="No hay componentes asociados">
+                        <columns>
+                            <Column width="110px"><Text text="Ítem"/></Column>
+                            <Column width="110px"><Text text="Material"/></Column>
+                            <Column width="220px"><Text text="Descripción Material"/></Column>
+                            <Column width="100px"><Text text="Cantidad"/></Column>
+                            <Column width="90px"><Text text="Unidad"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{ItemNumber}" />
+                                    <Text text="{Material}" />
+                                    <Text text="{MatlDesc}" />
+                                    <Text text="{RequirementQuantity}" />
+                                    <Text text="{RequirementQuantityUnit}" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+            </items>
+        </IconTabBar>
+
+    </VBox>
+</core:FragmentDefinition>

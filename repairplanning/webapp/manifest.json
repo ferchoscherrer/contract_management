@@ -1,0 +1,160 @@
+{
+  "_version": "1.86.0",
+  "sap.app": {
+    "id": "repairplanning",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:basic",
+      "version": "1.30.0",
+      "toolsId": "418ae808-4764-4243-aafb-50f4e9b632e6"
+    },
+    "dataSources": {
+      "ZCS_GET_NOTIFICATION_SRV": {
+        "uri": "sap/opu/odata/sap/ZCS_GET_NOTIFICATION_SRV?sap-language=es",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      },
+      "ZCS_GET_WORKORDER_SRV": {
+        "uri": "sap/opu/odata/sap/ZCS_GET_WORKORDER_SRV?sap-language=es",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      },
+      "ZSD_GET_QUOTATION_CUSTOMER_SRV": {
+        "uri": "sap/opu/odata/sap/ZSD_GET_QUOTATION_CUSTOMER_SRV?sap-language=es",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "repairplanning-Display": {
+          "semanticObject": "repairplanning",
+          "action": "Display",
+          "title": "{{repairplanning-Display.flpTitle}}",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.150.1",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "repairplanning.i18n.i18n"
+        }
+      },
+      "ZCS_GET_NOTIFICATION_SRV": {
+        "dataSource": "ZCS_GET_NOTIFICATION_SRV",
+       "preload": false,
+        "settings": {
+            "useBatch": true,
+            "json": true
+        }
+      },
+      "ZCS_GET_WORKORDER_SRV": {
+        "dataSource": "ZCS_GET_WORKORDER_SRV",
+       "preload": false,
+        "settings": {
+            "useBatch": true,
+            "json": true
+        }
+      },
+      "ZSD_GET_QUOTATION_CUSTOMER_SRV": {
+        "dataSource": "ZSD_GET_QUOTATION_CUSTOMER_SRV",
+       "preload": false,
+        "settings": {
+            "useBatch": true,
+            "json": true
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "controlAggregation": "pages",
+        "controlId": "app",
+        "transition": "slide",
+        "type": "View",
+        "viewType": "XML",
+        "path": "repairplanning.view",
+        "async": true,
+        "viewPath": "repairplanning.view"
+      },
+      "routes": [
+        {
+          "name": "RouteMain",
+          "pattern": ":?query:",
+          "target": [
+            "TargetMain"
+          ]
+        }
+      ],
+      "targets": {
+        "TargetMain": {
+          "id": "Main",
+          "name": "Main"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "repairplanning.view.App",
+      "type": "XML",
+      "id": "App",
+      "async": true
+    }
+  },
+  "sap.cloud": {
+    "public": true,
+    "service": "repairplanning"
+  }
+}

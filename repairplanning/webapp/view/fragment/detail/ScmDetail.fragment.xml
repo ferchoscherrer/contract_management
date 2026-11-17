@@ -1,0 +1,8 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <VBox class="sapUiMediumMargin">
+        <HBox class="sapUiTinyMarginBottom">
+            <Label text="Número de Rastreo (Tracking): " class="sapUiMediumMarginEnd"/>
+            <Text text="{trackingNumber}"/>
+        </HBox>
+    </VBox>
+</core:FragmentDefinition>

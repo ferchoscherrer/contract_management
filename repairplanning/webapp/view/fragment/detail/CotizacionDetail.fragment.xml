@@ -1,0 +1,83 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form">
+    
+    <VBox class="sapUiSmallMargin">
+        
+        <!-- Cabecera de la Cotización / Oferta -->
+        <f:Form editable="false">
+            <f:title>
+                <core:Title text="Datos Generales de la Cotización" />
+            </f:title>
+            <f:layout>
+                <f:ResponsiveGridLayout
+                    labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                    adjustLabelSpan="false"
+                    emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+                    columnsXL="2" columnsL="2" columnsM="1"
+                    singleContainerFullSize="false" />
+            </f:layout>
+            <f:formContainers>
+                <f:FormContainer>
+                    <f:formElements>
+                        <f:FormElement label="Número de Cotización">
+                            <f:fields>
+                                <Text text="{quotationId}" />
+                            </f:fields>
+                        </f:FormElement>
+                        <f:FormElement label="Fecha de Creación">
+                            <f:fields>
+                                <Text text="{date}" />
+                            </f:fields>
+                        </f:FormElement>
+                        <f:FormElement visible="false" label="Monto Total">
+                            <f:fields>
+                                <Text text="{amount} {currency}" />
+                            </f:fields>
+                        </f:FormElement>
+                        <f:FormElement label="Organización de Ventas">
+                            <f:fields>
+                                <Text text="{salesOrg}" />
+                            </f:fields>
+                        </f:FormElement>
+                    </f:formElements>
+                </f:FormContainer>
+            </f:formContainers>
+        </f:Form>
+
+        <!-- Pestañas de detalle para la Cotización -->
+        <IconTabBar id="itbQuotationDetail" class="sapUiResponsiveContentPadding sapUiResponsiveMargin">
+            <items>
+                
+                <!-- POSICIONES / ÍTEMS DE LA COTIZACIÓN (VBAP) -->
+                <IconTabFilter text="Posiciones" icon="sap-icon://list" count="{= ${items}.length }">
+                    <Table items="{items}" noDataText="No hay posiciones registradas en esta cotización">
+                        <columns>
+                            <Column width="90px"><Text text="Posición"/></Column>
+                            <Column width="110px"><Text text="Material"/></Column>
+                            <Column width="220px"><Text text="Descripción"/></Column>
+                            <Column width="100px"><Text text="Cantidad"/></Column>
+                            <Column width="80px"><Text text="Unidad"/></Column>
+                            <Column visible="false" width="110px"><Text text="Valor Neto"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{Posnr}" />
+                                    <Text text="{Matnr}" />
+                                    <Text text="{Arktx}" />
+                                    <Text text="{Kwmeng}" />
+                                    <Text text="{Vrkme}" />
+                                    <Text text="{amount}" visible="false" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+            </items>
+        </IconTabBar>
+
+    </VBox>
+</core:FragmentDefinition>

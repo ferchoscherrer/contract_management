@@ -1,0 +1,154 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form">
+    
+    <VBox class="sapUiSmallMargin">
+        
+        <!-- Formulario de Cabecera IW53 -->
+        <f:SimpleForm editable="false" layout="ColumnLayout" title="Cabecera del Aviso">
+            <f:content>
+                <Label text="Prioridad del Aviso"/>
+                <Text text="{priority}"/>
+                <Label text="Contrato"/>
+                <Text text="{contract}-{posicion}"/>
+                <Label text="Circunstancia"/>
+                <Text text="{circunstance}-{descriptionCircumstance}"/>
+            
+                <Label text="Equipo Asociado"/>
+                <Text text="{equipment}"/>
+            </f:content>
+        </f:SimpleForm>
+
+        <!-- Pestañas de detalle estilo IW53 -->
+        <IconTabBar id="itbAvisoDetail" class="sapUiResponsiveContentPadding">
+            <items>
+                
+                <!-- 1. POSICIONES / ITEMS -->
+                <IconTabFilter text="Posiciones" icon="sap-icon://bullet-text" count="{= ${items}.length }">
+                    <Table items="{items}" noDataText="No hay posiciones registradas para este aviso">
+                        <columns>
+                            <Column width="90px"><Text text="Posición"/></Column>
+                            <Column width="200px"><Text text="Texto de Posición"/></Column>
+                            <Column width="150px"><Text text="Parte Objeto"/></Column>
+                            <Column width="150px"><Text text="Síntoma / Código"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{ItemKey}" />
+                                    <Text text="{Descript}" />
+                                    <Text text="{DlCode}-{TxtObjptcd}" />
+                                    <Text text="{DCode}-{TxtProbcd}" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+                <!-- 2. ACTIVIDADES -->
+                <IconTabFilter text="Actividades" icon="sap-icon://activity-items" count="{= ${activities}.length }">
+                    <Table items="{activities}" noDataText="No hay actividades registradas">
+                        <columns>
+                            <Column width="90px"><Text text="Nº Act."/></Column>
+                            <Column width="220px"><Text text="Texto de la Actividad"/></Column>
+                            <Column width="140px"><Text text="Código"/></Column>
+                            <Column width="160px"><Text text="Fecha Inicio"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{ActSortNumber}" />
+                                    <Text text="{ActText}" />
+                                    <Text text="{ActCode}" />
+                                    <Text text="{StartDate}" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+                <!-- 3. INTERLOCUTORES / PARTNERS -->
+                <IconTabFilter text="Interlocutores" icon="sap-icon://group" count="{= ${partners}.length }">
+                    <Table items="{partners}" noDataText="No hay interlocutores asignados">
+                        <columns>
+                            <Column width="150px"><Text text="Función de Interlocutor"/></Column>
+                            <Column width="250px"><Text text="Nombre / Código Interlocutor"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{PartnRole}" />
+                                    <Text text="{Partner}" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </IconTabFilter>
+
+<!-- 4. TEXTOS EXPLICATIVOS ESTRUCTURADOS Y LIMPIOS -->
+<IconTabFilter text="Textos Explicativos" icon="sap-icon://document-text" count="{= ${parsedTextBlocks}.length }">
+    <VBox class="sapUiMediumMargin">
+        <List items="{parsedTextBlocks}" noDataText="Sin textos explicativos adicionales">
+            <CustomListItem>
+                <VBox class="sapUiMediumMarginBegin sapUiMediumMarginEnd sapUiMediumMarginTopBottom">
+                    
+                    <!-- CASO A: Si es una Posición de Mantenimiento Desglosada -->
+                    <VBox visible="{isPosition}">
+                        <Panel headerText="{positionTitle}" expandable="false" width="100%" class="sapUiResponsiveMargin">
+                            <content>
+                                <f:SimpleForm editable="false" layout="ColumnLayout">
+                                    <f:content>
+                                        <Label text="Pieza / Objeto" design="Bold"/>
+                                        <Text text="{pieza}"/>
+                                        
+                                        <Label text="Falla Detectada" design="Bold"/>
+                                        <ObjectStatus text="{falla}" state="Error" icon="sap-icon://alert"/>
+                                        
+                                        <Label text="Causa Raíz" design="Bold"/>
+                                        <Text text="{causa}"/>
+                                    </f:content>
+                                </f:SimpleForm>
+                            </content>
+                        </Panel>
+                    </VBox>
+
+                    <!-- CASO B: Si es la Cabecera / Nota General Desglosada -->
+                    <VBox visible="{= !${isPosition} }">
+                        <Panel headerText="Nota General / Cabecera del Aviso" expandable="false" width="100%" class="sapUiResponsiveMargin">
+                            <content>
+                                <f:SimpleForm editable="false" layout="ColumnLayout">
+                                    <f:content>
+                                        <Label text="Fecha y Usuario" design="Bold"/>
+                                        <Text text="{timestamp} ({user})"/>
+                                        
+                                        <Label text="Solicitante" design="Bold"/>
+                                        <Text text="{solicitante}"/>
+                                        
+                                        <Label text="Puesto" design="Bold"/>
+                                        <Text text="{puesto}"/>
+                                        
+                                        <Label text="Correo Electrónico" design="Bold"/>
+                                        <Text text="{email}"/>
+                                        
+                                        <Label text="Teléfono" design="Bold"/>
+                                        <Text text="{telefono}"/>
+                                        
+                                        <Label text="Observaciones" design="Bold"/>
+                                        <Text text="{observaciones}"/>
+                                    </f:content>
+                                </f:SimpleForm>
+                            </content>
+                        </Panel>
+                    </VBox>
+
+                </VBox>
+            </CustomListItem>
+        </List>
+    </VBox>
+</IconTabFilter>
+            </items>
+        </IconTabBar>
+
+    </VBox>
+</core:FragmentDefinition>
